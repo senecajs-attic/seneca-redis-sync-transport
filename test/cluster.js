@@ -5,7 +5,9 @@ var _ = require('lodash')
 var async = require('async')
 var assert = require('assert')
 var cluster = require('cluster')
-var seneca = require('seneca')
+var seneca = require('seneca')({
+  timeout: 5 * 1e3
+})
 
 var NUM_TASKS = 20
 var NUM_CLIENTS = 3
@@ -94,19 +96,14 @@ if (cluster.isMaster) {
   })
 }
 else {
-
-  var si = seneca({
-    timeout: 5 * 1e3
-  })
-
-  si.use('../redis-sync-transport')
+  seneca.use('../redis-sync-transport')
 
   if ('client' === process.env['TYPE']) {
-    si.client({type: 'redis-sync', pin: 'role:test,cmd:*'})
+    seneca.client({type: 'redis-sync', pin: 'role:test,cmd:*'})
 
     process.on('message', function (msg) {
       if (msg.cmd === 'exec') {
-        si.act({role: 'test', cmd: 'exec', task: msg.task}, function (err) {
+        seneca.act({role: 'test', cmd: 'exec', task: msg.task}, function (err) {
           if (err) {
             //console.error(err);
           }
@@ -116,16 +113,16 @@ else {
     })
   }
   else {
-    si.listen({type: 'redis-sync', pin: 'role:test,cmd:*', handle: 'once'})
+    seneca.listen({type: 'redis-sync', pin: 'role:test,cmd:*', handle: 'once'})
 
-    si.add({role: 'test', cmd: 'exec'}, function (args, done) {
+    seneca.add({role: 'test', cmd: 'exec'}, function (args, done) {
       process.send({event: 'exec', task: args.task})
       return done()
     })
   }
 
   // signal worker ready
-  si.ready(function () {
+  seneca.ready(function () {
     process.send({event: 'ready'})
   })
 

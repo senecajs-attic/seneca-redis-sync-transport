@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "description": "Seneca Redis Synchronized Transport",
   "main": "redis-sync-transport.js",
+  "author": "Ianto Cristian",
   "scripts": {
-    "test": "node_modules/.bin/mocha test/*.test.js"
+    "test": "node_modules/.bin/mocha test/*.test.js",
+    "annotate": "docco redis-sync-transport.js -o doc"
   },
   "repository": {
     "type": "git",
@@ -25,18 +27,20 @@
   ],
   "contributors": [
     "Ianto Cristian",
-    "Richard Rodger (http://richardrodger.com)"
+    "Richard Rodger (http://richardrodger.com)",
+    "Cristian Kiss (https://github.com/ckiss)"
   ],
   "license": "MIT",
   "dependencies": {
-    "redis": "~0.12.1",
-    "lodash": "~3.3.1"
+    "redis": "0.12.1",
+    "lodash": "3.3.1"
   },
   "devDependencies": {
     "async": "0.9.x",
-    "mocha": "~2.1.0",
+    "docco": "^0.7.0",
+    "mocha": "2.1.0",
     "seneca": "plugin",
-    "seneca-transport-test": "~0.1.2"
+    "seneca-transport-test": "0.1.2"
   },
   "files": [
     "README.md",
