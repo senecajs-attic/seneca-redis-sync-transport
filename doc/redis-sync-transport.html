@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>redis-sync-transport.js</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>redis-sync-transport.js</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-comment">/* Copyright (c) 2014-2015 Cristian Ianto, Richard Rodger, MIT License */</span>
+<span class="hljs-pi">'use strict'</span>;
+
+
+<span class="hljs-keyword">var</span> _ = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>)
+<span class="hljs-keyword">var</span> redis = <span class="hljs-built_in">require</span>(<span class="hljs-string">'redis'</span>)
+
+
+<span class="hljs-built_in">module</span>.exports = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">options</span>) </span>{
+  <span class="hljs-keyword">var</span> seneca = <span class="hljs-keyword">this</span>
+  <span class="hljs-keyword">var</span> plugin = <span class="hljs-string">'redis-sync-transport'</span>
+
+  <span class="hljs-keyword">var</span> so = seneca.options()
+
+  options = seneca.util.deepextend({
+      <span class="hljs-string">'redis-sync'</span>: {
+        timeout: so.timeout ? so.timeout - <span class="hljs-number">555</span> : <span class="hljs-number">22222</span>,
+        type: <span class="hljs-string">'redis-sync'</span>,
+        host: <span class="hljs-string">'localhost'</span>,
+        port: <span class="hljs-number">6379</span>
+      }
+    },
+    so.transport,
+    options
+  )
+
+
+  <span class="hljs-keyword">var</span> tu = seneca.export(<span class="hljs-string">'transport/utils'</span>)
+
+
+  seneca.add({role: <span class="hljs-string">'transport'</span>, hook: <span class="hljs-string">'listen'</span>, type: <span class="hljs-string">'redis-sync'</span>}, hook_listen_redis)
+  seneca.add({role: <span class="hljs-string">'transport'</span>, hook: <span class="hljs-string">'client'</span>, type: <span class="hljs-string">'redis-sync'</span>}, hook_client_redis)
+
+
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">hook_listen_redis</span>(<span class="hljs-params">args, done</span>) </span>{
+    <span class="hljs-keyword">var</span> seneca = <span class="hljs-keyword">this</span>
+    <span class="hljs-keyword">var</span> type = args.type
+    <span class="hljs-keyword">var</span> listen_options = seneca.util.clean(_.extend({}, options[type], args))
+
+    <span class="hljs-keyword">var</span> redis_in = redis.createClient(listen_options.port, listen_options.host)
+    <span class="hljs-keyword">var</span> redis_out = redis.createClient(listen_options.port, listen_options.host)
+    <span class="hljs-keyword">var</span> redis_sync = redis.createClient(listen_options.port, listen_options.host)
+
+    handle_events(redis_in)
+    handle_events(redis_out)
+    handle_events(redis_sync)
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sync_handle</span>(<span class="hljs-params">msgid, done</span>) </span>{</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <p>using incr to synchronize listeners
+first incr gets to process the message</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      redis_sync.incr(<span class="hljs-string">'seneca/transport/'</span> + msgid, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">err, result</span>) </span>{
+        <span class="hljs-keyword">if</span> (err) {
+          seneca.log.error(<span class="hljs-string">'transport'</span>, <span class="hljs-string">'redis-sync-key'</span>, err)
+          <span class="hljs-keyword">return</span> done(err)
+        }
+        <span class="hljs-keyword">return</span> done(<span class="hljs-literal">null</span>, <span class="hljs-number">1</span> === result)
+      })
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">post_handle</span>(<span class="hljs-params">msgid</span>) </span>{</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <p>cleanup</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      redis_sync.expire(<span class="hljs-string">'seneca/transport/'</span> + msgid, <span class="hljs-number">60</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">err, result</span>) </span>{
+        <span class="hljs-keyword">if</span> (err || <span class="hljs-number">1</span> !== result) {
+          seneca.log.error(<span class="hljs-string">'transport'</span>, <span class="hljs-string">'redis-sync-key-expire'</span>, err || <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'expected 1 got '</span> + result))
+        }
+      })
+    }
+
+    redis_in.on(<span class="hljs-string">'message'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">channel, msgstr</span>) </span>{
+      <span class="hljs-keyword">var</span> restopic = channel.replace(<span class="hljs-regexp">/_act$/</span>, <span class="hljs-string">'_res'</span>)
+      <span class="hljs-keyword">var</span> data = tu.parseJSON(seneca, <span class="hljs-string">'listen-'</span> + type, msgstr)
+
+      <span class="hljs-keyword">var</span> msgid = data.origin + <span class="hljs-string">'/'</span> + data.id
+      sync_handle(msgid, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">err, handle</span>) </span>{ <span class="hljs-comment">// calls back with true if the message should be handled</span>
+        <span class="hljs-keyword">if</span> (handle) {
+          tu.handle_request(seneca, data, listen_options, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">out</span>) </span>{
+            <span class="hljs-keyword">if</span> (<span class="hljs-literal">null</span> == out) <span class="hljs-keyword">return</span>;
+            <span class="hljs-keyword">var</span> outstr = tu.stringifyJSON(seneca, <span class="hljs-string">'listen-'</span> + type, out)
+            redis_out.publish(restopic, outstr)
+            post_handle(msgid)
+          })
+        }
+      })
+    })
+
+    tu.listen_topics(seneca, args, listen_options, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">topic</span>) </span>{
+      seneca.log.debug(<span class="hljs-string">'listen'</span>, <span class="hljs-string">'subscribe'</span>, topic + <span class="hljs-string">'_act'</span>, listen_options, seneca)
+      redis_in.subscribe(topic + <span class="hljs-string">'_act'</span>)
+    })
+
+
+    seneca.add(<span class="hljs-string">'role:seneca,cmd:close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">close_args, done</span>) </span>{
+      <span class="hljs-keyword">var</span> closer = <span class="hljs-keyword">this</span>
+
+      redis_in.end()
+      redis_out.end()
+      redis_sync.end()
+      closer.prior(close_args, done)
+    })
+
+
+    seneca.log.info(<span class="hljs-string">'listen'</span>, <span class="hljs-string">'open'</span>, listen_options, seneca)
+
+    done()
+  }
+
+
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">hook_client_redis</span>(<span class="hljs-params">args, clientdone</span>) </span>{
+    <span class="hljs-keyword">var</span> seneca = <span class="hljs-keyword">this</span>
+    <span class="hljs-keyword">var</span> type = args.type
+    <span class="hljs-keyword">var</span> client_options = seneca.util.clean(_.extend({}, options[type], args))
+
+    tu.make_client(make_send, client_options, clientdone)
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">make_send</span>(<span class="hljs-params">spec, topic, send_done</span>) </span>{
+      <span class="hljs-keyword">var</span> redis_in = redis.createClient(client_options.port, client_options.host)
+      <span class="hljs-keyword">var</span> redis_out = redis.createClient(client_options.port, client_options.host)
+
+      handle_events(redis_in)
+      handle_events(redis_out)
+
+      redis_in.on(<span class="hljs-string">'message'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">channel, msgstr</span>) </span>{
+        <span class="hljs-keyword">var</span> input = tu.parseJSON(seneca, <span class="hljs-string">'client-'</span> + type, msgstr)
+        tu.handle_response(seneca, input, client_options)
+      })
+
+      seneca.log.debug(<span class="hljs-string">'client'</span>, <span class="hljs-string">'subscribe'</span>, topic + <span class="hljs-string">'_res'</span>, client_options, seneca)
+      redis_in.subscribe(topic + <span class="hljs-string">'_res'</span>)
+
+      send_done(<span class="hljs-literal">null</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">args, done</span>) </span>{
+        <span class="hljs-keyword">var</span> outmsg = tu.prepare_request(<span class="hljs-keyword">this</span>, args, done)
+        <span class="hljs-keyword">var</span> outstr = tu.stringifyJSON(seneca, <span class="hljs-string">'client-'</span> + type, outmsg)
+
+        redis_out.publish(topic + <span class="hljs-string">'_act'</span>, outstr)
+      })
+
+      seneca.add(<span class="hljs-string">'role:seneca,cmd:close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">close_args, done</span>) </span>{
+        <span class="hljs-keyword">var</span> closer = <span class="hljs-keyword">this</span>
+
+        redis_in.end()
+        redis_out.end()
+        closer.prior(close_args, done)
+      })
+
+    }
+  }
+
+
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">handle_events</span>(<span class="hljs-params">redisclient</span>) </span>{</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <p>Die if you can’t connect initially</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    redisclient.on(<span class="hljs-string">'ready'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+      redisclient.on(<span class="hljs-string">'error'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">err</span>) </span>{
+        seneca.log.error(<span class="hljs-string">'transport'</span>, <span class="hljs-string">'redis-sync'</span>, err)
+      })
+    })
+  }
+
+  <span class="hljs-keyword">return</span> {
+    name: plugin
+  }
+}</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>
