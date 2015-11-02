@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "async": "0.9.x",
-    "docco": "^0.7.0",
+    "docco": "0.7.0",
     "mocha": "2.1.0",
     "seneca": "plugin",
     "seneca-transport-test": "0.1.2"
