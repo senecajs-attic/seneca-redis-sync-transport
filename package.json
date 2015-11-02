@@ -5,7 +5,7 @@
   "main": "redis-sync-transport.js",
   "author": "Ianto Cristian",
   "scripts": {
-    "test": "node_modules/.bin/mocha test/*.test.js",
+    "test": "lab test/*.test.js -r console -v -L -m 3000",
     "annotate": "docco redis-sync-transport.js -o doc"
   },
   "repository": {
@@ -38,7 +38,7 @@
   "devDependencies": {
     "async": "0.9.x",
     "docco": "0.7.0",
-    "mocha": "2.1.0",
+    "lab": "7.1.0",
     "seneca": "plugin",
     "seneca-transport-test": "0.1.2"
   },
