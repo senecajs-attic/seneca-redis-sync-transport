@@ -33,7 +33,7 @@
     "url": "git://github.com/senecajs/seneca-redis-sync-transport.git"
   },
   "bugs": {
-    "url": "https://github.com/senecajs/seneca-level-store/issues"
+    "url": "https://github.com/senecajs/seneca-redis-sync-transport/issues"
   },
   "dependencies": {
     "redis": "0.12.1",
