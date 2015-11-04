@@ -5,8 +5,6 @@
 [![Build Status][travis-badge]][travis-url]
 [![Gitter][gitter-badge]][gitter-url]
 
-[![js-standard-style][standard-badge]][standard-style]
-
 This plugin provides the redis pub/sub synchronized transport channel for
 micro-service messages.
 
@@ -74,8 +72,6 @@ Copyright Richard Rodger and other contributors 2015, Licensed under [MIT][].
 [travis-url]: https://travis-ci.org/senecajs/seneca-redis-sync-transport
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-url]: https://gitter.im/senecajs/seneca
-[standard-badge]: https://raw.githubusercontent.com/feross/standard/master/badge.png
-[standard-style]: https://github.com/feross/standard
 
 [MIT]: ./LICENSE
 [Senecajs org]: https://github.com/senecajs/
